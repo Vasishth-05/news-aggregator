@@ -9,8 +9,10 @@ const mongoose = require('mongoose');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const dbConnect = require('./src/db/aggregator.db.js');
+
 function startServer() {
-    mongoose.connect(process.env.MONGO_URI)
+    dbConnect();
 
     app.listen(port, (err) => {
         if (err) {
