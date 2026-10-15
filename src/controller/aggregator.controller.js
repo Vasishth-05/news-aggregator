@@ -9,7 +9,7 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     if( 
-        [username, email, hashedPassword].some(field => !field) 
+        [username, email, password].some(field => !field) 
     ){
         throw new Error('All fields are required');
     }
@@ -28,10 +28,10 @@ const register = async (req, res) => {
     const newUser = await Register.create({
         username,
         email,
-        hashedPassword
+        password: hashedPassword
     });
 
-    const createdUser = await newUser.findById(newUser._id).select('-hashedPassword');
+    const createdUser = await Register.findById(newUser._id).select('-password');
 
     if(!createdUser){
         throw new Error('Something went wrong while creating the user');

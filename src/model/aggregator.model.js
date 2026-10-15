@@ -23,7 +23,7 @@ const signInSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true,Aggregator
+        required: true,
     }
     
 }, { timestamps: true });

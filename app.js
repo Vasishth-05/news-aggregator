@@ -4,12 +4,13 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 5000;
 
-const mongoose = require('mongoose');
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const dbConnect = require('./src/db/aggregator.db.js');
+const aggregatorRoutes = require('./src/route/aggregator.route.js');
+
+app.use('/api/v1/aggregator', aggregatorRoutes);
 
 function startServer() {
     dbConnect();
