@@ -1,16 +1,26 @@
+require('dotenv').config();
+
 const express = require('express');
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 5000;
+
+const mongoose = require('mongoose');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.listen(port, (err) => {
-    if (err) {
-        return console.log('Something bad happened', err);
-    }
-    console.log(`Server is listening on ${port}`);
-});
+function startServer() {
+    mongoose.connect(process.env.MONGO_URI)
+
+    app.listen(port, (err) => {
+        if (err) {
+            return console.log('Something bad happened', err);
+        }
+        console.log(`Server is listening on ${port}`);
+    });
+}
+
+startServer();
 
 
 
