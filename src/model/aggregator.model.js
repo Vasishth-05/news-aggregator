@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const registerSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true,
@@ -12,23 +12,18 @@ const registerSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-    }
-    
-}, { timestamps: true });
-
-const signInSchema = new mongoose.Schema({
-    email: {
-        type: String,
-        required: true,
     },
-    password: {
-        type: String,
-        required: true,
+    categories:{
+        type:[String],
+        default:[]
+    },
+    languages:{
+        type:[String],
+        default:[]
     }
     
 }, { timestamps: true });
 
-const Register = mongoose.model('Register', registerSchema);
-const SignIn = mongoose.model('SignIn', signInSchema);
+const User = mongoose.model('Users', userSchema);
 
-module.exports = Register , SignIn;
+module.exports = {User};

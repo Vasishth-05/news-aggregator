@@ -1,12 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const Register = require('../model/aggregator.model.js');
-const { default: mongoose } = require('mongoose');
-const JWT_SECRET = 'harekrsna';
+const {User} = require('../model/aggregator.model.js');
+const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken');
 
 const register = async (req, res) => {
-    const {username, email, password} = req.body;
+    const {username, email, password, categories, languages} = req.body;
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -17,7 +16,7 @@ const register = async (req, res) => {
         throw new Error('All fields are required');
     }
 
-    const existingUser = await Register.findOne({
+    const existingUser = await User.findOne({
         $or: [
             { username },
             { email }
@@ -28,13 +27,16 @@ const register = async (req, res) => {
         throw new Error('Username or email already exists');
     }
 
-    const newUser = await Register.create({
+    const newUser = await User.create({
         username,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        categories:categories || [],
+        languages:languages || []
+        
     });
 
-    const createdUser = await Register.findById(newUser._id).select('-password');
+    const createdUser = await User.findById(newUser._id).select('-password');
 
     if(!createdUser){
         throw new Error('Something went wrong while creating the user');
@@ -52,11 +54,10 @@ const generateToken = (id) => {
             })
 }
 
-
 const signIn = async (req, res) => {
     const {email,password} = req.body
 
-    const user = await Register.findOne({email});
+    const user = await User.findOne({email});
 
     if (!user) {
         throw new Error("User not Found ");
@@ -93,6 +94,35 @@ const signIn = async (req, res) => {
     //     res.status(400)
     //     throw new Error('Invalid Credentials')
     // }
+}
+
+const userPreferences = async(req,res) => {
+    const {email,password} = req.body
+
+    const user = await User.findOne({email});
+
+    if (!user) {
+        throw new Error("User not Found ");
+    }
+
+    const isPassword = bcrypt.compareSync(password,user.password);
+
+    const payload = {
+        id: user._id
+    }
+
+    const token = jwt.sign(payload,JWT_SECRET,{
+        expiresIn:"1d"
+    })
+
+    if(!isPassword){
+        throw new Error ('Invalid Password');
+    }
+
+    res.status(201).json({
+        message : 'successfully got User preferences',
+        token:token
+    })
 }
 
 module.exports = {
