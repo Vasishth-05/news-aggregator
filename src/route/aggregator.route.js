@@ -3,7 +3,10 @@ const router = express.Router();
 
 const aggregatorController = require('../controller/aggregator.controller');
 
-router.route('/register')
+router.route('/signup')
     .post(aggregatorController.register);
 
-module.exports = router;
+router.route('/login')
+    .post(aggregatorController.signIn)
+
+module.exports = router

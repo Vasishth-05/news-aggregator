@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 const dbConnect = require('./src/db/aggregator.db.js');
 const aggregatorRoutes = require('./src/route/aggregator.route.js');
 
-app.use('/api/v1/aggregator', aggregatorRoutes);
+app.use('/users', aggregatorRoutes);
 
 function startServer() {
     dbConnect();
@@ -22,7 +22,6 @@ function startServer() {
         console.log(`Server is listening on ${port}`);
     });
 }
-
 startServer();
 
 
