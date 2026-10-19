@@ -13,13 +13,15 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    categories:{
-        type:[String],
-        default:[]
-    },
-    languages:{
-        type:[String],
-        default:[]
+    preferences:{
+        categories:{
+            type:[String],
+            default:[]
+        },
+        languages:{
+            type:[String],
+            default:[]
+        }
     }
     
 }, { timestamps: true });

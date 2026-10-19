@@ -31,8 +31,10 @@ const register = async (req, res) => {
         username,
         email,
         password: hashedPassword,
-        categories:categories || [],
-        languages:languages || []
+        preferences : {
+            categories:categories || [],
+            languages:languages || []
+        }
         
     });
 
@@ -97,7 +99,7 @@ const signIn = async (req, res) => {
 }
 
 const userPreferences = async(req,res) => {
-    const {email,password} = req.body
+    const {email,password,categories,languages} = req.body
 
     const user = await User.findOne({email});
 
@@ -107,25 +109,21 @@ const userPreferences = async(req,res) => {
 
     const isPassword = bcrypt.compareSync(password,user.password);
 
-    const payload = {
-        id: user._id
-    }
-
-    const token = jwt.sign(payload,JWT_SECRET,{
-        expiresIn:"1d"
-    })
-
     if(!isPassword){
         throw new Error ('Invalid Password');
     }
 
     res.status(201).json({
         message : 'successfully got User preferences',
-        token:token
+        preferences:{
+            categories,
+            languages
+        }
     })
 }
 
 module.exports = {
     register,
-    signIn
+    signIn,
+    userPreferences
 }
