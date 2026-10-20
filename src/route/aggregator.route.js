@@ -12,5 +12,6 @@ router.route('/login')
 
 router.route('/preferences')
     .get(protect, aggregatorController.userPreferences)
+    .put(protect, aggregatorController.updatePreferences)
 
 module.exports = router

@@ -122,8 +122,44 @@ const userPreferences = async(req,res) => {
     })
 }
 
+const updatePreferences = async(req,res) => {
+    try {
+        
+        const {categories,languages} = req.body;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                preferences: {
+                    categories,
+                    languages
+                }
+            },
+            {new:true,runValidators:true}
+        ).select('-password');
+
+        if(!user){
+            return res.status(404).json({
+                message: 'User not found'
+            })
+        }
+
+        res.status(200).json({
+            message: 'Preferences updated successfully',
+            preferences: user.preferences
+        })
+
+    } catch (error) {
+        res.status(500).json({
+            message:"Server Error",
+            error: error.message
+        })
+    }
+}
+
 module.exports = {
     register,
     signIn,
-    userPreferences
+    userPreferences,
+    updatePreferences
 }
