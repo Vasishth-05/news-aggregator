@@ -14,4 +14,7 @@ router.route('/preferences')
     .get(protect, aggregatorController.userPreferences)
     .put(protect, aggregatorController.updatePreferences)
 
+router.route('/')
+    .get(protect,aggregatorController.getNews)
+
 module.exports = router

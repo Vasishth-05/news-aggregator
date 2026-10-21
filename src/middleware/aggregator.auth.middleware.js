@@ -2,14 +2,12 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../model/aggregator.model.js');
 
 const protect = async (req, res, next) => {
-    let token;
-
     if (
         req.headers.authorization &&
         req.headers.authorization.startsWith('Bearer ')
     ) {
         try {
-            token = req.headers.authorization.split(' ')[1];
+            const token = req.headers.authorization.split(' ')[1];
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -23,6 +21,7 @@ const protect = async (req, res, next) => {
 
             return next();
         } catch (error) {
+            console.error('Authentication error:', error);
             return res.status(401).json({
                 message: 'Not authorized, token invalid or expired'
             });
