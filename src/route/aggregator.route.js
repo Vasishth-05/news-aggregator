@@ -19,8 +19,10 @@ router.route('/')
 
 router.route('/read')
     .post(protect,aggregatorController.markAsRead)
+    .get(protect,aggregatorController.getReadArticles)
 
 router.route('/favourite')
     .post(protect,aggregatorController.markAsFavourite)
+    .get(protect,aggregatorController.getFavoriteArticles)
 
 module.exports = router

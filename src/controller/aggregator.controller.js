@@ -266,6 +266,51 @@ const markAsFavourite = async(req,res) => {
 
 }
 
+const getReadArticles = async(req,res) => {
+    try {
+        const user = await User.findById(req.user._id)
+        .select('readArticles');
+    
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            readAriticles: user.readArticles
+        })
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to fetch read articles'
+        });
+    }
+}
+
+const getFavoriteArticles = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id)
+            .select('favoriteArticles');
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            favoriteArticles: user.favoriteArticles
+        });
+
+    } catch (error) {
+        console.error('Get favorites error:', error.message);
+
+        return res.status(500).json({
+            message: 'Failed to fetch favorite articles'
+        });
+    }
+};
+
 module.exports = {
     register,
     signIn,
@@ -273,5 +318,7 @@ module.exports = {
     updatePreferences,
     getNews,
     markAsRead,
-    markAsFavourite
+    markAsFavourite,
+    getReadArticles,
+    getFavoriteArticles
 }
