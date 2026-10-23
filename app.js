@@ -11,7 +11,8 @@ const dbConnect = require('./src/db/aggregator.db.js');
 const aggregatorRoutes = require('./src/route/aggregator.route.js');
 
 app.use('/users', aggregatorRoutes);
-app.use('/news',aggregatorRoutes)
+app.use('/news',aggregatorRoutes);
+app.use('/news/:id',aggregatorRoutes);
 
 function startServer() {
     dbConnect();

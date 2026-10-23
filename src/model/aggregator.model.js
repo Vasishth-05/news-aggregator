@@ -16,6 +16,14 @@ const userSchema = new mongoose.Schema({
     preferences:{
         type:[String],
         default:[]
+    },
+    readAriticles:{
+        type:[String],
+        default:[]
+    },
+    favouriteArticleas:{
+        type:[String],
+        default:[]
     }
     
 }, { timestamps: true });

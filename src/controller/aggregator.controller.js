@@ -5,15 +5,19 @@ const {User} = require('../model/aggregator.model.js');
 const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
+const nodeCache = require('node-cache');
+const newsCache = new nodeCache({stdTTL:300});
 
 const register = async (req, res) => {
     const {name, email, password,preferences} = req.body;
+
+    console.log(name,email,password,preferences);
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     if( 
-        [name , password].some(field => !field) 
+        [name ,email, password].some(field => !field) 
     ){
         throw new Error('All fields are required');
     }
@@ -158,6 +162,17 @@ const getNews = async(req,res) => {
             })
         }
 
+        const cacheKey = `news_${req.user._id}_${preferences.join('_')}`;
+
+        const cachedNews = newsCache.get(cacheKey);
+
+        if (cachedNews){
+            return res.status(200).json({
+                source:'cache',
+                articles:cachedNews
+            })
+        }
+
         const response = await axios.get(
             "https://v3-api.newscatcherapi.com/api/search",
             {
@@ -170,8 +185,15 @@ const getNews = async(req,res) => {
             }
         )
 
+        const articles = response.data.articles;
+
+        newsCache.set(cacheKey,articles);
+
         res.status(200).json({
-            articles: response.data.articles
+            cacheKey,
+            source:'api',
+            articles
+            
         })
 
     } catch (error) {
@@ -183,10 +205,73 @@ const getNews = async(req,res) => {
     }
 }
 
+const markAsRead = async(req,res) => {
+    try {
+
+        const articleId = req.params.id;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $addToSet:{readAriticles:articleId}
+            },
+            { new:true }
+        )
+
+        if(!user){
+            res.status(404).json({
+                message: 'User not found'
+            })
+        }
+
+        return res.status(200).json({
+            message:'Article marked as read'
+        })
+        
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to mark article as read',
+        });
+    }
+}
+
+const markAsFavourite = async(req,res) => {
+     try {
+
+        const articleId = req.params.id;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $addToSet:{favouriteArticles:articleId}
+            },
+            { new:true }
+        )
+
+        if(!user){
+            res.status(404).json({
+                message: 'User not found'
+            })
+        }
+
+        return res.status(200).json({
+            message:'Article marked as favourite'
+        })
+        
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to mark article as favourite',
+        });
+    }
+
+}
+
 module.exports = {
     register,
     signIn,
     userPreferences,
     updatePreferences,
-    getNews
+    getNews,
+    markAsRead,
+    markAsFavourite
 }
