@@ -1,134 +1,144 @@
 require('dotenv').config();
+const express = require('express');
 const bcrypt = require('bcrypt');
 const {User} = require('../model/aggregator.model.js');
+const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
 const register = async (req, res) => {
-    const { name, email, password, preferences } = req.body;
+    const {name, email, password,preferences} = req.body;
 
-    if ([name, email, password].some((field) => !field)) {
-        return res.status(400).json({
-            message: 'Name, email, and password are required'
-        });
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    if( 
+        [name , password].some(field => !field) 
+    ){
+        throw new Error('All fields are required');
     }
 
-    try {
-        const existingUser = await User.findOne({
-            $or: [{ name }, { email }]
-        });
+    const existingUser = await User.findOne({
+        $or: [
+            { name },
+            { email }
+        ]
+    });
 
-        if (existingUser) {
-            return res.status(409).json({
-                message: 'Username or email already exists'
-            });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await User.create({
-            name,
-            email,
-            password: hashedPassword,
-            preferences
-        });
-
-        res.status(200).json({
-            message: 'User registered successfully',
-            user: {
-                _id: newUser._id,
-                name: newUser.name,
-                email: newUser.email,
-                preferences: newUser.preferences
-            }
-        });
-    } catch (error) {
-        console.error('User registration error:', error);
-        res.status(500).json({ message: 'Failed to register user' });
+    if(existingUser){
+        throw new Error('Username or email already exists');
     }
-};
+
+    const newUser = await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        preferences
+        
+    });
+
+    const createdUser = await User.findById(newUser._id).select('-password');
+
+    if(!createdUser){
+        throw new Error('Something went wrong while creating the user');
+    }
+
+    res.status(200).json({
+        message: 'User registered successfully',
+        user: newUser
+    });
+}
 
 const signIn = async (req, res) => {
-    const { email, password } = req.body;
+    const {email,password} = req.body
 
-    if (!email || !password) {
-        return res.status(400).json({
-            message: 'Email and password are required'
-        });
+    const user = await User.findOne({email});
+
+    if (!user) {
+        throw new Error("User not Found ");
     }
 
-    try {
-        const user = await User.findOne({ email });
+    const isPassword = bcrypt.compareSync(password,user.password);
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({
-                message: 'Invalid email or password'
-            });
-        }
-
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-            expiresIn: '1d'
-        });
-
-        res.status(200).json({
-            message: 'successfully signedIn',
-            token
-        });
-    } catch (error) {
-        console.error('User sign-in error:', error);
-        res.status(500).json({ message: 'Failed to sign in' });
+    const payload = {
+        id: user._id
     }
-};
+
+    const token = jwt.sign(payload,JWT_SECRET,{
+        expiresIn:"1d"
+    })
+
+    if(!isPassword){
+        return res.status(401).json({
+            message: 'invalid password'
+        })
+    }
+
+    res.status(200).json({
+        message : 'successfully signedIn',
+        token:token
+    })
+
+
+    // if (user && (await bcrypt.compareSync(password,user.password))){
+    //     res.status(201).json({
+    //         _id:user._id,
+    //         name:user.name,
+    //         email:user.email,
+    //         token: generateToken(user._id)
+    //     })
+    // } else {
+    //     res.status(400)
+    //     throw new Error('Invalid Credentials')
+    // }
+}
 
 const userPreferences = async(req,res) => {
-    if (!req.user) {
-        return res.status(401).json({
-            message: 'Not authorized'
-        });
+    const {email} = req.body
+
+    const user = await User.findOne({email});
+
+    if (!user) {
+        res.status(401).json({
+            message: "Not a User"
+        })
     }
 
-    return res.status(200).json({
-        message: 'successfully got User preferences',
-        preferences: req.user.preferences
-    });
-};
+    res.status(200).json({
+        message : 'successfully got User preferences',
+        preferences:user.preferences
+    })
+}
 
 const updatePreferences = async(req,res) => {
-    const { preferences } = req.body;
-
-    if (
-        !Array.isArray(preferences) ||
-        preferences.some((preference) => typeof preference !== 'string')
-    ) {
-        return res.status(400).json({
-            message: 'Preferences must be an array of strings'
-        });
-    }
-
     try {
+
         const user = await User.findByIdAndUpdate(
             req.user._id,
-            { preferences },
-            { returnDocument: 'after', runValidators: true }
+            {
+                preferences: []
+            },
+            {new:true,runValidators:true}
         ).select('-password');
 
-        if (!user) {
+        if(!user){
             return res.status(404).json({
                 message: 'User not found'
-            });
+            })
         }
 
-        return res.status(200).json({
+        res.status(200).json({
             message: 'Preferences updated successfully',
             preferences: user.preferences
-        });
+        })
+
     } catch (error) {
-        console.error('Preference update error:', error);
-        return res.status(500).json({
-            message: 'Server Error',
+        res.status(500).json({
+            message:"Server Error",
             error: error.message
-        });
+        })
     }
-};
+}
 
 const getNews = async(req,res) => {
     try {
@@ -171,7 +181,7 @@ const getNews = async(req,res) => {
             message: 'Failed to fetch news'
         });
     }
-};
+}
 
 module.exports = {
     register,

@@ -2,11 +2,11 @@
     "name": "news-aggregator-api",
     "version": "1.0.0",
     "description": "Assignment 2 for backend engineering launchpad",
-    "main": "app.js",
+    "main": "index.js",
     "scripts": {
         "pretest": "node -e \"if (process.version.slice(1).split('.')[0] < 18) { console.error('Unsupported Node.js version, please use version 18'); process.exit(1); }\"",
-        "test": "node test/server.test.js",
-        "dev": "nodemon server.js"
+        "test": "tap test/*.js --disable-coverage",
+        "dev": "nodemon app.js"
     },
     "author": "Airtribe",
     "license": "ISC",
@@ -21,6 +21,7 @@
         "express": "^4.18.2",
         "jsonwebtoken": "^9.0.3",
         "mongoose": "^9.11.2",
+        "node-cache": "^5.1.2",
         "nodemon": "^3.1.14"
     },
     "engines": {
