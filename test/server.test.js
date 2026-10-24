@@ -5,9 +5,9 @@ const server = supertest(app);
 
 const mockUser = {
     name: 'Clark Kent',
-    email: 'clark@superman.com',
+    email: `clark-${Date.now()}@superman.com`,
     password: 'Krypt()n8',
-    preferences:['movies', 'comics']
+    preferences: ['movies', 'comics']
 };
 
 let token = '';

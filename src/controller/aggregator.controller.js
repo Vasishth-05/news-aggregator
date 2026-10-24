@@ -9,201 +9,198 @@ const nodeCache = require('node-cache');
 const newsCache = new nodeCache({stdTTL:300});
 
 const register = async (req, res) => {
-    const {name, email, password,preferences} = req.body;
+  try {
+    const { name, email, password, preferences } = req.body;
 
-    console.log(name,email,password,preferences);
-
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    if( 
-        [name ,email, password].some(field => !field) 
-    ){
-        throw new Error('All fields are required');
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: 'All fields are required'
+      });
     }
 
-    const existingUser = await User.findOne({
-        $or: [
-            { name },
-            { email }
-        ]
-    });
+    const existingUser = await User.findOne({ email });
 
-    if(existingUser){
-        throw new Error('Username or email already exists');
+    if (existingUser) {
+      return res.status(409).json({
+        message: 'Username or email already exists'
+      });
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
-        name,
-        email,
-        password: hashedPassword,
-        preferences
-        
+      name,
+      email,
+      password: hashedPassword,
+      preferences: preferences || []
     });
 
-    const createdUser = await User.findById(newUser._id).select('-password');
-
-    if(!createdUser){
-        throw new Error('Something went wrong while creating the user');
-    }
-
-    res.status(200).json({
-        message: 'User registered successfully',
-        user: newUser
+    return res.status(200).json({
+      message: 'User registered successfully',
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        preferences: newUser.preferences
+      }
     });
-}
+
+  } catch (error) {
+    console.error('Register error:', error);
+
+    return res.status(500).json({
+      message: 'Registration failed'
+    });
+  }
+};
 
 const signIn = async (req, res) => {
-    const {email,password} = req.body
-
-    const user = await User.findOne({email});
-
-    if (!user) {
-        throw new Error("User not Found ");
-    }
-
-    const isPassword = bcrypt.compareSync(password,user.password);
-
-    const payload = {
-        id: user._id
-    }
-
-    const token = jwt.sign(payload,JWT_SECRET,{
-        expiresIn:"1d"
-    })
-
-    if(!isPassword){
-        return res.status(401).json({
-            message: 'invalid password'
-        })
-    }
-
-    res.status(200).json({
-        message : 'successfully signedIn',
-        token:token
-    })
-
-
-    // if (user && (await bcrypt.compareSync(password,user.password))){
-    //     res.status(201).json({
-    //         _id:user._id,
-    //         name:user.name,
-    //         email:user.email,
-    //         token: generateToken(user._id)
-    //     })
-    // } else {
-    //     res.status(400)
-    //     throw new Error('Invalid Credentials')
-    // }
-}
-
-const userPreferences = async(req,res) => {
-    const {email} = req.body
-
-    const user = await User.findOne({email});
-
-    if (!user) {
-        res.status(401).json({
-            message: "Not a User"
-        })
-    }
-
-    res.status(200).json({
-        message : 'successfully got User preferences',
-        preferences:user.preferences
-    })
-}
-
-const updatePreferences = async(req,res) => {
     try {
+        const { email, password } = req.body;
 
-        const user = await User.findByIdAndUpdate(
-            req.user._id,
-            {
-                preferences: []
-            },
-            {new:true,runValidators:true}
-        ).select('-password');
-
-        if(!user){
-            return res.status(404).json({
-                message: 'User not found'
-            })
-        }
-
-        res.status(200).json({
-            message: 'Preferences updated successfully',
-            preferences: user.preferences
-        })
-
-    } catch (error) {
-        res.status(500).json({
-            message:"Server Error",
-            error: error.message
-        })
-    }
-}
-
-const getNews = async(req,res) => {
-    try {
-        const user = await User.findById(req.user._id);
+        const user = await User.findOne({ email });
 
         if (!user) {
-            return res.status(404).json({
-                message: 'User not found'
-            })
+            return res.status(401).json({
+                message: 'Invalid email or password'
+            });
         }
 
-        const preferences = user.preferences;
+        const isPassword = bcrypt.compareSync(password, user.password);
 
-        if(!preferences?.length ){
-            return res.status(400).json({
-                message : 'Please set your news preferences first'
-            })
+        if (!isPassword) {
+            return res.status(401).json({
+                message: 'Invalid email or password'
+            });
         }
 
-        const cacheKey = `news_${req.user._id}_${preferences.join('_')}`;
+        const payload = {
+            id: user._id
+        };
 
-        const cachedNews = newsCache.get(cacheKey);
+        const token = jwt.sign(payload, JWT_SECRET, {
+            expiresIn: '1d'
+        });
 
-        if (cachedNews){
-            return res.status(200).json({
-                source:'cache',
-                articles:cachedNews
-            })
-        }
-
-        const response = await axios.get(
-            "https://v3-api.newscatcherapi.com/api/search",
-            {
-                params:{
-                    q:preferences.map(p=>`(${p})`).join(' OR ')
-                },
-                headers:{
-                    'x-api-token': process.env.NEWSCATCHER_API_KEY
-                }
-            }
-        )
-
-        const articles = response.data.articles;
-
-        newsCache.set(cacheKey,articles);
-
-        res.status(200).json({
-            cacheKey,
-            source:'api',
-            articles
-            
-        })
+        return res.status(200).json({
+            message: 'Successfully signed in',
+            token
+        });
 
     } catch (error) {
-        console.error('NewsCatcher error:', error.response?.data || error.message);
+        console.error('Sign-in error:', error);
 
-        return res.status(502).json({
-            message: 'Failed to fetch news'
+        return res.status(500).json({
+            message: 'Sign-in failed'
         });
     }
-}
+};
+
+const userPreferences = async (req, res) => {
+  try {
+    return res.status(200).json({
+      message: 'Successfully retrieved user preferences',
+      preferences: req.user.preferences
+    });
+  } catch (error) {
+    console.error('Get preferences error:', error.message);
+
+    return res.status(500).json({
+      message: 'Failed to retrieve preferences'
+    });
+  }
+};
+
+
+const updatePreferences = async (req, res) => {
+  try {
+    const { preferences } = req.body;
+
+    if (!Array.isArray(preferences)) {
+      return res.status(400).json({
+        message: 'Preferences must be an array'
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { preferences } },
+      { returnDocument: 'after' }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Preferences updated successfully',
+      preferences: user.preferences
+    });
+  } catch (error) {
+    console.error('Update preferences error:', error.message);
+
+    return res.status(500).json({
+      message: 'Failed to update preferences'
+    });
+  }
+};
+
+const getNews = async (req, res) => {
+  try {
+    const preferences = req.user.preferences || [];
+
+    if (preferences.length === 0) {
+      return res.status(400).json({
+        message: 'Please set your news preferences first'
+      });
+    }
+
+    const cacheKey = `news_${req.user._id}_${preferences.join('_')}`;
+
+    const cachedNews = newsCache.get(cacheKey);
+
+    if (cachedNews) {
+      return res.status(200).json({
+        news: cachedNews,
+        source: 'cache'
+      });
+    }
+
+    const response = await axios.get(
+      'https://v3-api.newscatcherapi.com/api/search',
+      {
+        params: {
+          q: preferences.map(p => `(${p})`).join(' OR ')
+        },
+        headers: {
+          'x-api-token': process.env.NEWSCATCHER_API_KEY
+        }
+      }
+    );
+
+    const articles = response.data.articles || [];
+
+    newsCache.set(cacheKey, articles);
+
+    return res.status(200).json({
+      news: articles,
+      source: 'api'
+    });
+
+  } catch (error) {
+    console.error(
+      'Get news error:',
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      message: 'Failed to fetch news'
+    });
+  }
+};
+
 
 const markAsRead = async(req,res) => {
     try {
