@@ -314,6 +314,62 @@ const getFavoriteArticles = async (req, res) => {
     }
 };
 
+const searchNews = async (req,res) => {
+    try {
+        const keyword = req.params.keyword;
+
+        if (!keyword || !keyword.trim()){
+            return res.status(400).json({
+                message: 'Please provide a search keyword'
+            })
+        }
+
+        const cacheKey = `search_${keyword.trim().toLowerCase()}`;
+
+        const cachedArticles = newsCache.get(cacheKey);
+
+        if (cachedArticles){
+            return res.status(200).json({
+                source:'cache',
+                keyword,
+                articles:cachedArticles
+            })
+        }
+
+        const response = await axios.get(
+            'https://v3-api.newscatcherapi.com/api/search',
+            {
+                params: {
+                    q: keyword.trim()
+                },
+                headers: {
+                    'x-api-token': process.env.NEWSCATCHER_API_KEY
+                }
+            }
+        );
+
+        const articles = response.data.articles;
+
+        newsCache.set(cacheKey,articles);
+
+        return res.status(200).json({
+            keyword,
+            source : 'api',
+            articles: response.data.articles
+        });
+
+    } catch (error) {
+        console.error(
+            'NewsCatcher search error:',
+            error.response?.data || error.message
+        );
+
+        return res.status(502).json({
+            message: 'Failed to search news'
+        });
+    }
+}
+
 module.exports = {
     register,
     signIn,
@@ -323,5 +379,6 @@ module.exports = {
     markAsRead,
     markAsFavourite,
     getReadArticles,
-    getFavoriteArticles
+    getFavoriteArticles,
+    searchNews
 }

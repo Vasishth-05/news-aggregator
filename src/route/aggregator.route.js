@@ -29,4 +29,7 @@ router.route('/:id/favourite')
 router.route('/favourite')
     .get(protect,aggregatorController.getFavoriteArticles)
 
+router.route('/search/:keyword')
+    .get(protect,aggregatorController.searchNews)
+
 module.exports = router
