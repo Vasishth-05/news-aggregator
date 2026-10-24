@@ -17,11 +17,11 @@ const userSchema = new mongoose.Schema({
         type:[String],
         default:[]
     },
-    readAriticles:{
+    readArticles:{
         type:[String],
         default:[]
     },
-    favouriteArticleas:{
+    favouriteArticles:{
         type:[String],
         default:[]
     }

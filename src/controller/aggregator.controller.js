@@ -177,7 +177,7 @@ const getNews = async(req,res) => {
             "https://v3-api.newscatcherapi.com/api/search",
             {
                 params:{
-                    q:preferences.join(' OR ')
+                    q:preferences.map(p=>`(${p})`).join(' OR ')
                 },
                 headers:{
                     'x-api-token': process.env.NEWSCATCHER_API_KEY
@@ -213,7 +213,7 @@ const markAsRead = async(req,res) => {
         const user = await User.findByIdAndUpdate(
             req.user._id,
             {
-                $addToSet:{readAriticles:articleId}
+                $addToSet:{readArticles:articleId}
             },
             { new:true }
         )
@@ -225,7 +225,8 @@ const markAsRead = async(req,res) => {
         }
 
         return res.status(200).json({
-            message:'Article marked as read'
+            message:'Article marked as read',
+            readArticles:user.readArticles
         })
         
     } catch (error) {
@@ -255,7 +256,8 @@ const markAsFavourite = async(req,res) => {
         }
 
         return res.status(200).json({
-            message:'Article marked as favourite'
+            message:'Article marked as favourite',
+            favouriteArticles:user.favouriteArticles
         })
         
     } catch (error) {
@@ -278,8 +280,9 @@ const getReadArticles = async(req,res) => {
         }
 
         return res.status(200).json({
-            readAriticles: user.readArticles
+            readArticles: user.readArticles
         })
+
     } catch (error) {
         return res.status(500).json({
             message: 'Failed to fetch read articles'
@@ -290,7 +293,7 @@ const getReadArticles = async(req,res) => {
 const getFavoriteArticles = async (req, res) => {
     try {
         const user = await User.findById(req.user._id)
-            .select('favoriteArticles');
+            .select('favouriteArticles');
 
         if (!user) {
             return res.status(404).json({
@@ -299,7 +302,7 @@ const getFavoriteArticles = async (req, res) => {
         }
 
         return res.status(200).json({
-            favoriteArticles: user.favoriteArticles
+            favouriteArticles: user.favouriteArticles
         });
 
     } catch (error) {

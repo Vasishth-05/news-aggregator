@@ -17,12 +17,16 @@ router.route('/preferences')
 router.route('/')
     .get(protect,aggregatorController.getNews)
 
-router.route('/read')
+router.route('/:id/read')
     .post(protect,aggregatorController.markAsRead)
+
+router.route('/read')
     .get(protect,aggregatorController.getReadArticles)
 
-router.route('/favourite')
+router.route('/:id/favourite')
     .post(protect,aggregatorController.markAsFavourite)
+
+router.route('/favourite')
     .get(protect,aggregatorController.getFavoriteArticles)
 
 module.exports = router
